@@ -10,7 +10,6 @@ from math import *
 from surface_1 import Surface_BWB
 
 
-
 class Engine(GeomBase):
     fact_engine = Input()
     AoA_engine = Input()
@@ -21,13 +20,15 @@ class Engine(GeomBase):
     crvs_surface_to_points_vb = Input()
     position_surf1_on_surf2_vb = Input()
     nb_eq_pts_airfoils = Input()
-
+    is_there_engine = Input()
 
 
     @Attribute
     def calculate_x_y_engine(self):
-        x_engine = self.crvs_surface_to_points_vb[-1][int(self.nb_eq_pts_airfoils/2)][0]-120.847 / (4 * self.fact_engine) #change here with inputs
-        y_engine = self.crvs_surface_to_points_vb[-1][int(self.nb_eq_pts_airfoils/2)][1]
+        print("Engine placement started")
+        x_engine = self.crvs_surface_to_points_vb[-1][int(self.nb_eq_pts_airfoils / 2)][0] - 120.847 / (
+                    4 * self.fact_engine)  # change here with inputs
+        y_engine = self.crvs_surface_to_points_vb[-1][int(self.nb_eq_pts_airfoils / 2)][1]
         return x_engine, y_engine
 
     @Attribute
@@ -57,9 +58,12 @@ class Engine(GeomBase):
 
     @Attribute
     def create_base_projection_engine(self):
-        pt_center_rect_placement_engine = Point(self.crvs_surface_to_points_vb[-1][int(self.nb_eq_pts_airfoils / 2)][0], self.y_vb,
-                                                self.crvs_surface_to_points_vb[-1][int(self.nb_eq_pts_airfoils / 2)][2]-self.span_vb/20)
-        surface_base_rect_placement_engine = RectangularSurface(width = self.chords_vb[0] * 2, length = self.chords_vb[0],
+        pt_center_rect_placement_engine = Point(self.crvs_surface_to_points_vb[-1][int(self.nb_eq_pts_airfoils / 2)][0],
+                                                self.y_vb,
+                                                self.crvs_surface_to_points_vb[-1][int(self.nb_eq_pts_airfoils / 2)][
+                                                    2] - self.span_vb / 17)
+        surface_base_rect_placement_engine = RectangularSurface(width = self.chords_vb[0] * 2,
+                                                                length = self.chords_vb[0],
                                                                 position = Position(pt_center_rect_placement_engine))
         surface_base_rect_placement_engine = RotatedSurface(surface_base_rect_placement_engine,
                                                             pt_center_rect_placement_engine, Vector(0, 1, 0),
@@ -95,19 +99,25 @@ class Engine(GeomBase):
         crvs_engine_l = self.position_surf1_on_surf2
         crvs_engine_r = []
         for i in range(len(crvs_engine_l)):
-            crvs_engine_r.append(MirroredCurve(curve_in = crvs_engine_l[i], reference_point = Point(0, 0, 0), vector1= Vector(1,0,0),
-                            vector2 = Vector(0, 0, 1)))
+            crvs_engine_r.append(
+                MirroredCurve(curve_in = crvs_engine_l[i], reference_point = Point(0, 0, 0), vector1 = Vector(1, 0, 0),
+                              vector2 = Vector(0, 0, 1)))
+        print("Engine placed")
         return crvs_engine_r
 
     @Part
     def surface(self):
-        return Fused(LoftedSurface(profiles = self.position_surf1_on_surf2[0:3], min_degree = 25), LoftedSurface(profiles = self.position_surf1_on_surf2[2:], min_degree = 25))
+        return Fused(LoftedSurface(profiles = self.position_surf1_on_surf2[0:3], min_degree = 25),
+                     LoftedSurface(profiles = self.position_surf1_on_surf2[2:], min_degree = 25))
 
     @Part
     def surface_mirrored(self):
-        return Fused(LoftedSurface(profiles = self.mirror_crvs[0:3], min_degree = 25), LoftedSurface(profiles = self.mirror_crvs[2:], min_degree = 25))
+        return Fused(LoftedSurface(profiles = self.mirror_crvs[0:3], min_degree = 25),
+                     LoftedSurface(profiles = self.mirror_crvs[2:], min_degree = 25))
+
 
 if __name__ == '__main__':
     from parapy.gui import display
+
     obj = Engine()
     display(obj)

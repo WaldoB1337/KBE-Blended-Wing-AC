@@ -50,8 +50,17 @@ class VerticalBase(GeomBase):
     surf2_type = Input()
     surfaces = Input()
 
+    is_there_vb = Input()
+
+    name = Input()
+    nb_chordwise_vortices = Input()
+    nb_spanwise_vortices = Input()
+    is_mirrored = Input()
+
+
     @Attribute
     def initial_surface(self):
+        print("Base engine placement started")
         return Surface_BWB(nb_eq_pts_rails = self.nb_eq_pts_rails,
                           nb_eq_pts_airfoils = self.nb_eq_pts_airfoils,
                           nb_fixed_control_points = self.nb_fixed_control_points,
@@ -82,7 +91,8 @@ class VerticalBase(GeomBase):
                           nb_airfoils_ss = self.nb_airfoils,
                           surface_type = self.surface_type,
                           is_twisted = self.is_twisted,
-                          is_there_dihedral = self.is_there_dihedral)
+                          is_there_dihedral = self.is_there_dihedral,
+                          nb_sections_AVL = 2)
 
     @Attribute
     def x_fcp(self):
@@ -154,13 +164,13 @@ class VerticalBase(GeomBase):
 
         while dz_new < dz_old and count < self.nb_max_rotations:
             count = count + 1
-            print('rotation1 increment nb=', count)
+            #print('rotation1 increment nb=', count)
             for i in range(self.nb_airfoils):
                 crvs_surface_vb_lst[i] = RotatedCurve(crvs_surface_vb_lst[i], pt_attachment_le_vt_projected,
                                                           Vector(0, 1, 0), -np.deg2rad(self.dtheta1))
                     # intermediate_crvs1.append(crvs_surface_vt_lst[i])
                 crvs_vt_rotation_1_lst.append(crvs_surface_vb_lst[i])
-            print('rotation1 increment nb=', count, 'is finished')
+            #print('rotation1 increment nb=', count, 'is finished')
             lst_inter_te = LineSegment(start = crvs_surface_vb_lst[0].start,
                                            end = Point(crvs_surface_vb_lst[0].start[0], crvs_surface_vb_lst[0].start[1],
                                                        -1e3)).surface_intersections(
@@ -188,13 +198,13 @@ class VerticalBase(GeomBase):
 
         while dz_new < dz_old and count < self.nb_max_rotations:
             count = count + 1
-            print('rotation2 increment nb=', count)
+            #print('rotation2 increment nb=', count)
             for i in range(self.nb_airfoils):
                 crvs_surface_vb_lst[i] = RotatedCurve(crvs_surface_vb_lst[i], pt_attachment_le_vt_projected,
                                                           Vector(1, 0, 0), -np.deg2rad(self.dtheta2))
                     # intermediate_crvs2.append(crvs_surface_vt_lst[i])
                 crvs_vt_rotation_2_lst.append(crvs_surface_vb_lst[i])
-            print('rotation2 increment nb=', count, 'is finished')
+            #print('rotation2 increment nb=', count, 'is finished')
             lst_inter_te = LineSegment(start = crvs_surface_vb_lst[0].sample_points[int(23 / 2)],
                                            end = Point(crvs_surface_vb_lst[0].sample_points[int(23 / 2)][0],
                                                        crvs_surface_vb_lst[0].sample_points[int(23 / 2)][1],
@@ -208,6 +218,14 @@ class VerticalBase(GeomBase):
             # display([crvs_surface_vt_lst,surface_ss_l,crvs_vt_rotation_2_lst])
 
         return crvs_surface_vb_lst, AoA_vb
+
+    @Attribute
+    def all_sections(self):
+        sections_lst = []
+        for i in range(self.nb_airfoils):
+            sections_lst.append(avl.SectionFromCurve(curve_in=self.position_surf1_on_surf2[0][i]))
+        return sections_lst
+
 
     @Attribute
     def crvs_surface_to_points(self):
@@ -229,6 +247,7 @@ class VerticalBase(GeomBase):
                                    pts_surface_lst[i][k][2])
                 pts_airfoil_mirored_lst.append(pt_mirored)
             pts_surface_mirored_lst.append(pts_airfoil_mirored_lst)
+        print("Base engine placed")
         return pts_surface_mirored_lst
 
     @Part
@@ -238,6 +257,17 @@ class VerticalBase(GeomBase):
     @Part
     def surface_mirorred(self):
         return FittedSurface(points = self.mirror_points, min_degree = 8)
+
+    @Part
+    def avl_surface(self):
+        return avl.Surface(name = self.name,
+                           n_chordwise = self.nb_chordwise_vortices,
+                           chord_spacing = avl.Spacing.cosine,
+                           n_spanwise = self.nb_spanwise_vortices,
+                           span_spacing = avl.Spacing.cosine,
+                           y_duplicate = self.position.point[1] if self.is_mirrored else None,
+                           sections = self.all_sections)
+
 
 if __name__ == '__main__':
     from parapy.gui import display

@@ -23,7 +23,7 @@ class Airfoil(GeomBase):
         chord = -self.pt_le.distance(self.pt_te)
 
         if len(self.airfoil_name) == 4 and (type(int(char) == int) for char in self.airfoil_name):
-            print('NACA4')
+            #print('NACA4')
             crv_airfoil = DynamicType(type = Naca4AirfoilCurve,
                                       designation = self.airfoil_name,
                                       mesh_deflection = 0.00001,
@@ -42,7 +42,7 @@ class Airfoil(GeomBase):
                                       mesh_deflection = 0.00001)
 
         if len(self.airfoil_name) == 5 and (type(int(char) == int) for char in self.airfoil_name):
-            print('NACA5')
+            #print('NACA5')
             crv_airfoil = DynamicType(type = Naca5AirfoilCurve,
                                       designation = self.airfoil_name,
                                       mesh_deflection = 0.00001,
@@ -63,7 +63,7 @@ class Airfoil(GeomBase):
 
         if not ((len(self.airfoil_name) == 4 or len(self.airfoil_name) == 5) and (type(int(char) == int) for char in
                                                                         self.airfoil_name)):
-            print('Airfoil specified')
+            #print('Airfoil specified')
             with open(self.airfoil_name + ".dat", 'r') as f:
                 pts_airfoil_lst = []
                 for line in f:

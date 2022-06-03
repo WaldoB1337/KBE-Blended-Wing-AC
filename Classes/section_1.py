@@ -2,22 +2,21 @@ from parapy.core import *
 from parapy.geom import *
 import kbeutils.avl as avl
 
-
 import numpy as np
 from math import *
 from airfoil_1 import Airfoil
 
+
 class Section(GeomBase):
     airfoil_name = Input()
     y_airfoil = Input()
-    nb_eq_pts_rails = Input()
     cant_angle = Input()
     dihedral_angle = Input()
     eq_pts_le_ss_lst = Input()
     eq_pts_te_ss_lst = Input()
     height_factor = Input()
+    nb_eq_pts_rails = Input()
     nb_eq_pts_airfoils = Input()
-
 
     @Attribute
     def curve(self):
@@ -27,7 +26,8 @@ class Section(GeomBase):
         while (p < self.nb_eq_pts_rails - 1) and not (
                 self.eq_pts_le_ss_lst[p][1] <= self.y_airfoil <= self.eq_pts_le_ss_lst[p + 1][1]):
             p = p + 1
-        lst_inter_le = LineSegment(start = self.eq_pts_le_ss_lst[p], end = self.eq_pts_le_ss_lst[p + 1]).surface_intersections(
+        lst_inter_le = LineSegment(start = self.eq_pts_le_ss_lst[p],
+                                   end = self.eq_pts_le_ss_lst[p + 1]).surface_intersections(
             pln_le)
         pt_le = lst_inter_le[0]['point']
         p = 0
@@ -49,8 +49,16 @@ class Section(GeomBase):
         while (p < self.nb_eq_pts_rails - 1) and not (
                 self.eq_pts_te_ss_lst[p][1] <= pt_te_projected[1] <= self.eq_pts_te_ss_lst[p + 1][1]):
             p = p + 1
-        lst_inter_te = LineSegment(start = self.eq_pts_te_ss_lst[p], end = self.eq_pts_te_ss_lst[p + 1]).surface_intersections(
+        lst_inter_te = LineSegment(start = self.eq_pts_te_ss_lst[p],
+                                   end = self.eq_pts_te_ss_lst[p + 1]).surface_intersections(
             pln_te)
         pt_te = lst_inter_te[0]['point']
 
-        return Airfoil(airfoil_name=self.airfoil_name, pt_le=pt_le, pt_te=pt_te, dihedral_angle=self.dihedral_angle, height_factor=self.height_factor, nb_eq_pts_airfoils=self.nb_eq_pts_airfoils).airfoil
+        return Airfoil(airfoil_name = self.airfoil_name, pt_le = pt_le, pt_te = pt_te,
+                       dihedral_angle = self.dihedral_angle, height_factor = self.height_factor,
+                       nb_eq_pts_airfoils = self.nb_eq_pts_airfoils).airfoil, pt_le.distance(pt_te)
+
+    @Part  # the camber of the airfoil is accounted. Any curve is allowed. It includes
+    # avl_section_by_points
+    def avl_section(self):
+        return avl.SectionFromCurve(curve_in = self.curve[0])
