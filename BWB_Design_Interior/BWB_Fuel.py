@@ -10,6 +10,7 @@ TO DO LIST:
 
 """
 RULE VIOLATION LIST:
+    - Fuel Tank Chord <= 80% Main Cabin Length
     
 """
 """
@@ -23,75 +24,110 @@ Range = Attribute(XXX)
 
 @Part(in_tree=False)
 """
+def error_message(header,msg):
+        from tkinter import Tk, mainloop, X, messagebox
+
+        window = Tk()
+        window.withdraw()
+
+        messagebox.showwarning(header,msg)
 
 class FuelTank(GeomBase):
-    Range = Input(6000) # [km] (A320 Range)
-    V_cr = Input(230) # [m/s]
-    C_T = Input(1.8639e-4) # [N/Ns] (MDO fuel consumption)
-    LD = Input(16) # [-] (To be replaced from aero analysis)
-    cruise_frac = Input(1.35) # Start / End of Cruise
-    W_TO_max = Input(50e3) # [kg] MTOW
-    rho_fuel = Input(0.81715e3) #[kg/m3] Fuel Density
 
-    l_tank = Input(6) # [m]
-    w_tank = Input(3) # [m]
-    w_cabin = Input(12) # [m]
 
-    wingspan = Input(25) # [m]
+    ### User Inputs: ###
+    wingspan = Input(60) # [m]
     sweep = Input(30) # [deg]
+    taper = Input(0.4)
+    W_fuel = Input(250e3)
 
-    loc = Input(5)
-
-    def cruise_frac(self):
-        W_cruise_pre = (self.Range * self.C_T) * (self.V_cr * self.LD)
-        W_cruise = np.exp(W_cruise_pre)
-        return W_cruise
+    ## Constant:###
+    h_tank = Input(0.5) # [m]
+    w_cabin = Input(12) # [m]
+    l_cabin = Input(20)
+    h_cabin = Input(2.1)
+    rho_fuel = Input(0.81715e3) # [kg/m3]
+    h_cargo = Input(1.5)
     
-    def W_fuel(self):
-        W_fuel = (1 -0.938*self.cruise_frac)*self.W_TO_max
-        return W_fuel
+    # Location passed as Cabin COG in CentralFuselage
+    loc = Input(XOY)
 
     # Coor. Sys Origin:
     @Attribute
     def origin(self):
-        return XOY.translate("y",self.loc)
+        return self.loc
     
     @Part
     def origin_marker(self):
         return Sphere(radius=0.25,position=self.origin,color="orange")
-
+    
     @Attribute
     def tank_span(self):
-        return 0.5*self.wingspan
+        return 0.5*self.wingspan*0.8 # Constraint tank to 80\% of Half wing span
+    
+    @Attribute
+    def fuel_vol(self):
+        #V_fuel = (0.5*self.wingspan*self.tank_c_r)*(1+self.taper)*self.h_tank
+        V_fuel = self.W_fuel / self.rho_fuel
+        return V_fuel
+    
+    @Attribute
+    def tank_height(self):
+        h_tank = self.h_tank
+        if h_tank > self.h_cabin + 0.5*self.h_cargo:
+            header = "Warning: Fuel Tank Exceeds Limit!"
+            msg = "The depth of the fuel tank exceeds preset boundary.\
+                Dimensions will be reset to match the cabin height.\
+                    Consider entering a larger wingspan to compensate."
+            error_message(header,msg)
+            h_tank = self.h_cabin + 0.5*self.h_cargo#self.h_cabin 
+
+        return h_tank
+    
+    @Attribute
+    def tank_c_r(self):
+        """In case Tank Root exceeds cabin, take minimum"""
+        root_chord = (2/self.tank_span) * (self.fuel_vol/(self.tank_height*(1+self.taper)))
+        
+        if root_chord > 0.75*self.l_cabin:
+            header = "Warning: Fuel Tank Exceeds Limit!"
+            msg = "The root chord of the fuel tank exceeds that of the main cabin.\
+                It will be reset to be 75% \of the main cabin length.\
+                    Consider entering a larger wingspan to compensate."
+            error_message(header,msg)
+            root_chord = 0.75*self.l_cabin
+        return root_chord
+    
+    
 
     @Attribute
     def tank_sweep(self):
-        return 0.5*self.tank_span*np.cos(self.sweep)
+        return self.tank_span*np.tan(np.radians(self.sweep)) # Y-Axis shift due to wing sweep
     
 
     ## Fuel Tank Left:
     @Attribute
     def tank_root1(self):
-        return Rectangle(width=self.w_tank,length=self.l_tank,
+        return Rectangle(width=self.tank_height,length=self.tank_c_r,
                         position=self.origin.translate("x",self.w_cabin/2).rotate("y",90,deg=True))
     
     @Attribute
     def tank_root2(self):
-        return Rectangle(width=self.w_tank,length=self.l_tank,
+        return Rectangle(width=self.tank_height,length=self.tank_c_r,
                         position=self.origin.translate("x",-1*self.w_cabin/2).rotate("y",90,deg=True))
     
     @Attribute
     def tank_tip1(self):
         X_span = self.tank_span + self.w_cabin/2
         Y_span = self.tank_sweep
-        return Rectangle(width=self.w_tank,length=self.l_tank,
+        return Rectangle(width=self.tank_height,length=self.tank_c_r*self.taper,
                         position=self.origin.translate("x",X_span).translate("y",Y_span).rotate("y",90,deg=True))
     
     @Attribute
     def tank_tip2(self):
         X_span = -1*(self.tank_span + self.w_cabin/2)
         Y_span = self.tank_sweep
-        return Rectangle(width=self.w_tank,length=self.l_tank,
+        return Rectangle(width=self.tank_height,length=self.tank_c_r*self.taper,
                         position=self.origin.translate("x",X_span).translate("y",Y_span).rotate("y",90,deg=True))
 
     @Part
@@ -101,6 +137,73 @@ class FuelTank(GeomBase):
     @Part
     def fuel_tank2(self):
         return RuledSolid(profile1=self.tank_root2, profile2=self.tank_tip2, color="orange")
+
+    @Attribute
+    def corners(self):
+        vertices = []
+        corner_mark = []
+        vrtx_coor = []
+        components = [self.fuel_tank1.vertices,
+                     self.fuel_tank2.vertices]
+        for component in components:
+            for i in range(len(component)):
+                vertex_cargo = component[i].point
+                vertices.append(vertex_cargo)
+                vrtx_coor.append([vertex_cargo.x,vertex_cargo.y,vertex_cargo.z])
+
+        vrtx_coor = np.array(vrtx_coor)
+        #print(np.array(vrtx_coor))
+        vrtx_coor_s = vrtx_coor[np.argsort(vrtx_coor[:,1])]
+
+        return [vertices, vrtx_coor_s]
+    
+    @Attribute
+    def midline(self):
+        midline_1 = self.fuel_tank1.profile2.center - self.fuel_tank1.profile1.center
+        midline_2 = self.fuel_tank2.profile2.center - self.fuel_tank2.profile1.center
+        print(midline_1)
+        print(midline_2)
+        
+        return [midline_1,midline_2]
+
+    @Part(parse=False)
+    def cargo_vertices(self):
+        #return self.corners[0]
+        vertices = self.corners[0]
+        corner_mark = []
+        for corner in range(len(vertices)):
+            marker = Sphere(radius=0.2,position=vertices[corner], color="red")
+            corner_mark.append(marker)
+        return corner_mark
+    
+    @Attribute
+    def control_points(self):
+        #print(self.corners[1])
+        data = self.corners[0]
+        ctrl_loc = []
+        ctrl_points = []
+
+        for i in range(0,len(data)):
+            if i==1 or i==2 or i==9 or i==10:
+                point = Point(data[i][0],data[i][1],data[i][2])\
+                    .translate("z",0.5*self.tank_height,
+                                "y",-0.5*np.sqrt(3)*self.tank_height)
+                #print(point)
+                ctrl_loc.append(point)
+                
+        # for i in range(len(ctrl_loc)):
+        #     ctrl_points.append(Sphere(radius=0.2,position=ctrl_loc[i], color="black"))
+
+        return ctrl_loc
+    
+    @Part(parse=False)
+    def control_spheres(self):
+        ctrl_spheres = []
+        for i in range(len(self.control_points)):
+            ctrl_spheres.append(Sphere(radius=0.2,
+            position=self.control_points[i], color="black"))
+
+        return ctrl_spheres
 
 
 if __name__ == '__main__':
