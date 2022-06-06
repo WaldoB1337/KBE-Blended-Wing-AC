@@ -181,20 +181,49 @@ class FuelTank(GeomBase):
         #print(self.corners[1])
         data = self.corners[0]
         ctrl_loc = []
-        ctrl_points = []
+        ## Add manually upper points
+        ctrl_points_fr = [1,2,9,10] ## Pointing forward
+        ctrl_points_rr = [4,5,12,13] ## Pointing Rearward
+
 
         for i in range(0,len(data)):
-            if i==1 or i==2 or i==9 or i==10:
+            if i in ctrl_points_fr:
+            #if i==1 or i==2 or i==9 or i==10:
                 point = Point(data[i][0],data[i][1],data[i][2])\
                     .translate("z",0.5*self.tank_height,
-                                "y",-0.5*np.sqrt(3)*self.tank_height)
-                #print(point)
+                                "y",-1.1*0.5*np.sqrt(3)*self.tank_height)
                 ctrl_loc.append(point)
+            elif i in ctrl_points_rr:
+            #if i==1 or i==2 or i==9 or i==10:
+                point = Point(data[i][0],data[i][1],data[i][2])\
+                    .translate("z",0.5*self.tank_height,
+                                "y",1.1*0.5*np.sqrt(3)*self.tank_height)
+                ctrl_loc.append(point)
+            
                 
         # for i in range(len(ctrl_loc)):
         #     ctrl_points.append(Sphere(radius=0.2,position=ctrl_loc[i], color="black"))
 
         return ctrl_loc
+    
+    @Part(parse=False)
+    def tank_border(self):
+        reso = 10
+        data = self.control_points
+        print(len(data))
+        vectors,points,ref_points,spheres = [],[],[],[]
+        for i in range(int(0.5*len(data))):
+            line_vec = (data[2*i+1] - data[2*i])/ reso
+            vectors.append(line_vec)
+            ref_points.append(data[2*i])
+
+        for i in range(len(vectors)):
+            for k in range(reso):
+                point = ref_points[i] + (k+1)*vectors[i]
+                print(point)
+                spheres.append(Sphere(radius=0.2,
+                                position=point, color="black"))
+        return spheres
     
     @Part(parse=False)
     def control_spheres(self):
