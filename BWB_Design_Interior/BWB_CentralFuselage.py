@@ -7,6 +7,7 @@ from BWB_Cabin import Cabin
 from BWB_Cargo import Cargo
 from BWB_Fuel import FuelTank
 from BWB_Wing import Wing
+#from BWB_Class_I import AircraftMission
 #from bwb_1 import BWB
 import numpy as np
 from kbeutils.geom.curve import Naca5AirfoilCurve, Naca4AirfoilCurve
@@ -68,10 +69,14 @@ class CentralFuselage(GeomBase,avl.Interface):
     # @Part
     # def Frame(self):
     #     return Frame(pos=XOY, hidden=False)
+    
+    # @Attribute
+    # def mission(self):
+    #     return AircraftMission()
 
     @Attribute
     def origin_points(self):
-        XYZ_cabin = XOY
+        XYZ_cabin = XOY.rotate("z",90,deg=True)
         y_tilde = ((-self.h_cargo/2)*(self.h_cargo*self.w_cargo)+\
                         (self.h_cabin/2)*(self.h_cabin*self.cabin.w_cabin))\
                  /((self.h_cargo*self.w_cargo)+(self.h_cabin*self.cabin.w_cabin))
@@ -121,9 +126,31 @@ class CentralFuselage(GeomBase,avl.Interface):
     
     @Attribute
     def Interior_Corners(self):
-        return [self.cabin.corners,
-                self.cargo.corners,
-                self.fuel_tanks.corners]
+        #vrtx_coor_s = vrtx_coor[np.argsort(vrtx_coor[:,1])]
+        ## Use argsort to sort along x axis instead
+        cor_cab = self.cabin.corners[1][np.argsort(self.cabin.corners[1][:,0])]
+        cor_carg = self.cargo.corners[1][np.argsort(self.cargo.corners[1][:,0])]
+        fuel_cor = self.fuel_tanks.corners[1][np.argsort(self.fuel_tanks.corners[1][:,0])]
+        print(cor_cab)
+        """To extract corners on left side, set if statement """
+        # return [self.cabin.corners,
+        #         self.cargo.corners,
+        #         self.fuel_tanks.corners]
+        return [cor_cab,cor_carg,fuel_cor]
+    
+    @Attribute
+    def symm_corners(self):
+        cor_l = []
+        cor_r = []
+        for part in self.Interior_Corners:
+            for coor in part:
+                point = Point(coor[0],coor[1],coor[2])
+                if coor[0] > 0:    
+                    cor_l.append(point)
+                elif coor[0] < 0:
+                    cor_r.append(point)
+        print(cor_l)
+        return [cor_l,cor_r]
 
     ### Wing Surface
    
