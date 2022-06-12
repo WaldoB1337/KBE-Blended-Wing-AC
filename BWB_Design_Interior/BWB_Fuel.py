@@ -208,9 +208,10 @@ class FuelTank(GeomBase):
     
     @Part(parse=False)
     def tank_border(self):
+        ## LE and TE
         reso = 10
         data = self.control_points
-        print(len(data))
+        #print(len(data))
         vectors,points,ref_points,spheres = [],[],[],[]
         for i in range(int(0.5*len(data))):
             line_vec = (data[2*i+1] - data[2*i])/ reso
@@ -220,9 +221,29 @@ class FuelTank(GeomBase):
         for i in range(len(vectors)):
             for k in range(reso):
                 point = ref_points[i] + (k+1)*vectors[i]
-                print(point)
+                #print(point)
                 spheres.append(Sphere(radius=0.2,
                                 position=point, color="black"))
+        
+        ## Tank Tips
+        #ref_points = [2,5,10,13]
+        reso = 5
+        corners = self.corners[0]
+        line_vec_l = (corners[5] - corners[2]) / reso
+        line_vec_r = (corners[13] - corners[10]) / reso
+        ref_points = [corners[2],corners[10]]
+        vectors = [line_vec_l,line_vec_r]
+        for ref in range(len(ref_points)):
+            for i in range(reso+1):
+                if ref==0:
+                    buffer = 1.1*0.5*np.sqrt(3)*self.tank_height
+                else:
+                    buffer = -1.1*0.5*np.sqrt(3)*self.tank_height
+                point = ref_points[ref] + i*vectors[ref] + Vector(buffer,0,0.5*self.tank_height)
+                # point_l = corners[2] + i*line_vec_l
+                # point_r = corners[10] + i*line_vec_r
+                marker = Sphere(radius=0.2,position=point, color="black")
+                spheres.append(marker)
         return spheres
     
     @Part(parse=False)
