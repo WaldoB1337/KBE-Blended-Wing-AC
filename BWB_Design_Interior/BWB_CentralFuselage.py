@@ -153,9 +153,9 @@ class CentralFuselage(GeomBase,avl.Interface):
         for part in self.Interior_Corners:
             for coor in part:
                 point = Point(coor[0],coor[1],coor[2])
-                if coor[0] > 0:    
+                if coor[1] > 0:    
                     cor_l.append(point)
-                elif coor[0] < 0:
+                elif coor[1] < 0:
                     cor_r.append(point)
         #print(cor_l)
         return [cor_l,cor_r]
