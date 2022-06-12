@@ -161,8 +161,8 @@ class FuelTank(GeomBase):
     def midline(self):
         midline_1 = self.fuel_tank1.profile2.center - self.fuel_tank1.profile1.center
         midline_2 = self.fuel_tank2.profile2.center - self.fuel_tank2.profile1.center
-        print(midline_1)
-        print(midline_2)
+        #print(midline_1)
+        #print(midline_2)
         
         return [midline_1,midline_2]
 
@@ -191,13 +191,13 @@ class FuelTank(GeomBase):
             #if i==1 or i==2 or i==9 or i==10:
                 point = Point(data[i][0],data[i][1],data[i][2])\
                     .translate("z",0.5*self.tank_height,
-                                "y",-1.1*0.5*np.sqrt(3)*self.tank_height)
+                                "x",-1.2*0.5*np.sqrt(3)*self.tank_height)
                 ctrl_loc.append(point)
             elif i in ctrl_points_rr:
             #if i==1 or i==2 or i==9 or i==10:
                 point = Point(data[i][0],data[i][1],data[i][2])\
                     .translate("z",0.5*self.tank_height,
-                                "y",1.1*0.5*np.sqrt(3)*self.tank_height)
+                                "x",1.2*0.5*np.sqrt(3)*self.tank_height)
                 ctrl_loc.append(point)
             
                 
@@ -236,10 +236,10 @@ class FuelTank(GeomBase):
         for ref in range(len(ref_points)):
             for i in range(reso+1):
                 if ref==0:
-                    buffer = 1.1*0.5*np.sqrt(3)*self.tank_height
+                    buffer = -1.2*0.5*np.sqrt(3)*self.tank_height
                 else:
-                    buffer = -1.1*0.5*np.sqrt(3)*self.tank_height
-                point = ref_points[ref] + i*vectors[ref] + Vector(buffer,0,0.5*self.tank_height)
+                    buffer = 1.2*0.5*np.sqrt(3)*self.tank_height
+                point = ref_points[ref] + i*vectors[ref] + Vector(0,buffer,0.5*self.tank_height)
                 # point_l = corners[2] + i*line_vec_l
                 # point_r = corners[10] + i*line_vec_r
                 marker = Sphere(radius=0.2,position=point, color="black")

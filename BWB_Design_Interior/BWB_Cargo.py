@@ -35,10 +35,12 @@ class Cargo(GeomBase):
     l_cabin = Input(15) 
     #h_cargo = Input(1.626) 
 
+    loc = Input(XOY.rotate("z",90,deg=True))
+
     # Coor. Sys Origin:
     @Part
     def origin(self):
-        return Sphere(radius=0.1,position=XOY)
+        return Sphere(radius=0.1,position=self.loc)
 
     @Attribute
     def cargo_vol(self):
@@ -89,7 +91,8 @@ class Cargo(GeomBase):
     @Part
     def cargo_hold(self):
         return Box(length=self.cargo_length,width=self.cargo_width,height=self.cargo_height,
-                   centered=False, position=XOY.rotate("y",180,deg=True).translate("x",-self.cargo_width/2))
+                   centered=False, 
+                   position=self.loc.translate("y",self.cargo_width/2,"z",-self.cargo_height).rotate("z",-90,deg=True))
     
     @Attribute
     def corners(self):

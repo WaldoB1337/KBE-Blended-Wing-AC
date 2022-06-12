@@ -74,13 +74,15 @@ class CentralFuselage(GeomBase,avl.Interface):
     # def mission(self):
     #     return AircraftMission()
 
+    frame = Input(XOY)
+
     @Attribute
     def origin_points(self):
-        XYZ_cabin = XOY.rotate("z",90,deg=True)
+        XYZ_cabin = self.frame.rotate("z",90,deg=True)
         y_tilde = ((-self.h_cargo/2)*(self.h_cargo*self.w_cargo)+\
                         (self.h_cabin/2)*(self.h_cabin*self.cabin.w_cabin))\
                  /((self.h_cargo*self.w_cargo)+(self.h_cabin*self.cabin.w_cabin))
-        XYZ_front = XOY.translate("z",y_tilde,"y",-self.l_cockpit*1.1)
+        XYZ_front = self.frame.translate("z",y_tilde,"y",-self.l_cockpit*1.1).rotate("z",90,deg=True)
         return [XYZ_front,XYZ_cabin]
     
     # @Attribute
@@ -99,13 +101,19 @@ class CentralFuselage(GeomBase,avl.Interface):
     def cabin(self):
         return Cabin(N_pax=self.N_pax, N_col_ec=self.N_col,
                     h_cabin=self.h_cabin, w_seat_ec=self.w_seat, w_aisle_ec=self.w_aisle,
-                    w_cockpit=self.w_cockpit, l_cockpit=self.l_cockpit)
+                    w_cockpit=self.w_cockpit, l_cockpit=self.l_cockpit,
+                    loc=XOY.rotate("z",-90,deg=True))
     
     @Part
     def cargo(self):
         return Cargo(w_cabin=self.cabin.w_cabin,l_cabin=self.cabin.l_cabin,
                      h_cargo=self.h_cargo,m_cargo=self.m_cargo,
-                     rho_cargo=self.rho_cargo)
+                     rho_cargo=self.rho_cargo,
+                     loc=XOY)
+    
+    @Attribute
+    def fuel_weight(self):
+        return self.W_fuel
     
     @Attribute
     def cog_interior(self):
@@ -120,7 +128,7 @@ class CentralFuselage(GeomBase,avl.Interface):
                         l_cabin=self.cabin.l_cabin,
                         h_cabin=self.cabin.h_cabin,
                         W_fuel = self.W_fuel,
-                        loc=self.cog_interior,
+                        loc=self.cog_interior.rotate("z",-90,deg=True),
                         wingspan=self.wingspan)
                         #h_tank=self.cabin.h_cabin)
     
@@ -131,7 +139,7 @@ class CentralFuselage(GeomBase,avl.Interface):
         cor_cab = self.cabin.corners[1][np.argsort(self.cabin.corners[1][:,0])]
         cor_carg = self.cargo.corners[1][np.argsort(self.cargo.corners[1][:,0])]
         fuel_cor = self.fuel_tanks.corners[1][np.argsort(self.fuel_tanks.corners[1][:,0])]
-        print(cor_cab)
+        #print(cor_cab)
         """To extract corners on left side, set if statement """
         # return [self.cabin.corners,
         #         self.cargo.corners,
@@ -149,11 +157,11 @@ class CentralFuselage(GeomBase,avl.Interface):
                     cor_l.append(point)
                 elif coor[0] < 0:
                     cor_r.append(point)
-        print(cor_l)
+        #print(cor_l)
         return [cor_l,cor_r]
 
     ### Wing Surface
-   
+    """
     @Part(parse=False)
     def WingSurface(self):
         return Wing(origin=self.origin_points,
@@ -171,7 +179,7 @@ class CentralFuselage(GeomBase,avl.Interface):
     def avl_configuration(self):
         return avl.Configuration(name='aircraft',
                                  reference_area=self.WingSurface.wing_area,
-                                 reference_span=self.WingSurface.wing_span,
+                                 reference_span=self.WingSurface.wing_span+self.cabin.w_cabin,
                                  reference_chord=self.WingSurface.wing_mac,
                                  reference_point=self.WingSurface.wing_cog,
                                  surfaces=self.avl_surfaces,
@@ -191,16 +199,16 @@ class CentralFuselage(GeomBase,avl.Interface):
     def l_over_d(self):
         return {case_name: result['Totals']['CLtot'] / result['Totals']['CDtot']
                 for case_name, result in self.results.items()}
-
+    """
     ### Export Files to STP:
     # Uncomment .write() method
-    @Attribute
-    def CAD_Export(self):
-        print(DIR)
-        return STEPWriter(trees=[self.cabin, self.cabin,
-                                self.fuel_tanks,self.WingSurface],
-                          default_directory=DIR,
-                          filename="BWB_CAD.stp")
+    # @Attribute
+    # def CAD_Export(self):
+    #     print(DIR)
+    #     return STEPWriter(trees=[self.cabin, self.cabin,
+    #                             self.fuel_tanks,self.WingSurface],
+    #                       default_directory=DIR,
+    #                       filename="BWB_CAD.stp")
     
 if __name__ == '__main__':
     from parapy.gui import display
