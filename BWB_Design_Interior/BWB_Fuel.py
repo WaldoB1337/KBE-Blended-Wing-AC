@@ -48,6 +48,7 @@ class FuelTank(GeomBase):
     h_cabin = Input(2.1)
     rho_fuel = Input(0.81715e3) # [kg/m3]
     h_cargo = Input(1.5)
+    tank_c_root = Input(15)
     
     # Location passed as Cabin COG in CentralFuselage
     loc = Input(XOY)
@@ -87,8 +88,8 @@ class FuelTank(GeomBase):
     @Attribute
     def tank_c_r(self):
         """In case Tank Root exceeds cabin, take minimum"""
-        root_chord = (2/self.tank_span) * (self.fuel_vol/(self.tank_height*(1+self.taper)))
-        
+        root_chord = self.tank_c_root
+
         if root_chord > 0.75*self.l_cabin:
             header = "Warning: Fuel Tank Exceeds Limit!"
             msg = "The root chord of the fuel tank exceeds that of the main cabin.\

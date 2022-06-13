@@ -110,10 +110,7 @@ class CentralFuselage(GeomBase,avl.Interface):
                      h_cargo=self.h_cargo,m_cargo=self.m_cargo,
                      rho_cargo=self.rho_cargo,
                      loc=XOY)
-    
-    @Attribute
-    def fuel_weight(self):
-        return self.W_fuel
+
     
     @Attribute
     def cog_interior(self):
@@ -122,29 +119,18 @@ class CentralFuselage(GeomBase,avl.Interface):
         # cg_int = CG_cargo - CG_cabin
         return Position(self.cabin.fused_cabin.cog)
 
-    @Part 
-    def fuel_tanks(self):
-        return FuelTank(w_cabin=self.cabin.w_cabin,
-                        l_cabin=self.cabin.l_cabin,
-                        h_cabin=self.cabin.h_cabin,
-                        W_fuel = self.W_fuel,
-                        loc=self.cog_interior.rotate("z",-90,deg=True),
-                        wingspan=self.wingspan)
-                        #h_tank=self.cabin.h_cabin)
-    
     @Attribute
     def Interior_Corners(self):
         #vrtx_coor_s = vrtx_coor[np.argsort(vrtx_coor[:,1])]
         ## Use argsort to sort along x axis instead
         cor_cab = self.cabin.corners[1][np.argsort(self.cabin.corners[1][:,0])]
         cor_carg = self.cargo.corners[1][np.argsort(self.cargo.corners[1][:,0])]
-        fuel_cor = self.fuel_tanks.corners[1][np.argsort(self.fuel_tanks.corners[1][:,0])]
         #print(cor_cab)
         """To extract corners on left side, set if statement """
         # return [self.cabin.corners,
         #         self.cargo.corners,
         #         self.fuel_tanks.corners]
-        return [cor_cab,cor_carg,fuel_cor]
+        return [cor_cab,cor_carg]
     
     @Attribute
     def symm_corners(self):
