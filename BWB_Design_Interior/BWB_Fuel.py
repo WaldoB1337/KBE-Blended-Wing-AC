@@ -2,6 +2,7 @@ import profile
 from parapy.core import *
 from parapy.geom import *
 import numpy as np
+from parapy.gui import display
 
 """
 TO DO LIST:
@@ -42,7 +43,9 @@ class FuelTank(GeomBase):
     W_fuel = Input(250e3)
 
     ## Constant:###
-    h_tank = Input(0.5) # [m]
+    h_tank_root = Input(0.5) # [m]
+    h_tank_tip = Input(0.5)  # [m]
+    dihedral_height = Input(0.5) # [m]
     w_cabin = Input(12) # [m]
     l_cabin = Input(20)
     h_cabin = Input(2.1)
@@ -64,7 +67,7 @@ class FuelTank(GeomBase):
     
     @Attribute
     def tank_span(self):
-        return 0.5*self.wingspan*0.8 # Constraint tank to 80\% of Half wing span
+        return 0.5*self.wingspan*0.8-self.w_cabin/2 # Constraint tank to 80\% of Half wing span
     
     @Attribute
     def fuel_vol(self):
@@ -73,9 +76,9 @@ class FuelTank(GeomBase):
         return V_fuel
     
     @Attribute
-    def tank_height(self):
-        h_tank = self.h_tank
-        if h_tank > self.h_cabin + 0.5*self.h_cargo:
+    def tank_root_height(self):
+        h_tank_root = self.h_tank_root
+        if h_tank_root > self.h_cabin + 0.5*self.h_cargo:
             header = "Warning: Fuel Tank Exceeds Limit!"
             msg = "The depth of the fuel tank exceeds preset boundary.\
                 Dimensions will be reset to match the cabin height.\
@@ -83,8 +86,21 @@ class FuelTank(GeomBase):
             error_message(header,msg)
             h_tank = self.h_cabin + 0.5*self.h_cargo#self.h_cabin 
 
-        return h_tank
-    
+        return h_tank_root
+
+    @Attribute
+    def tank_tip_height(self):
+        h_tank_tip = self.h_tank_tip
+        if h_tank_tip > self.h_cabin + 0.5*self.h_cargo:
+            header = "Warning: Fuel Tank Exceeds Limit!"
+            msg = "The depth of the fuel tank exceeds preset boundary.\
+                Dimensions will be reset to match the cabin height.\
+                    Consider entering a larger wingspan to compensate."
+            error_message(header,msg)
+            h_tank = self.h_cabin + 0.5*self.h_cargo#self.h_cabin
+
+        return h_tank_tip
+
     @Attribute
     def tank_c_r(self):
         """In case Tank Root exceeds cabin, take minimum"""
@@ -104,32 +120,33 @@ class FuelTank(GeomBase):
     @Attribute
     def tank_sweep(self):
         return self.tank_span*np.tan(np.radians(self.sweep)) # Y-Axis shift due to wing sweep
+
     
 
     ## Fuel Tank Left:
     @Attribute
     def tank_root1(self):
-        return Rectangle(width=self.tank_height,length=self.tank_c_r,
+        return Rectangle(width=self.tank_root_height,length=self.tank_c_r,
                         position=self.origin.translate("x",self.w_cabin/2).rotate("y",90,deg=True))
     
     @Attribute
     def tank_root2(self):
-        return Rectangle(width=self.tank_height,length=self.tank_c_r,
+        return Rectangle(width=self.tank_root_height,length=self.tank_c_r,
                         position=self.origin.translate("x",-1*self.w_cabin/2).rotate("y",90,deg=True))
     
     @Attribute
     def tank_tip1(self):
         X_span = self.tank_span + self.w_cabin/2
         Y_span = self.tank_sweep
-        return Rectangle(width=self.tank_height,length=self.tank_c_r*self.taper,
-                        position=self.origin.translate("x",X_span).translate("y",Y_span).rotate("y",90,deg=True))
+        return Rectangle(width=self.tank_tip_height,length=self.tank_c_r*self.taper,
+                        position=self.origin.translate("x",X_span).translate("y",Y_span).translate("z",self.dihedral_height).rotate("y",90,deg=True))
     
     @Attribute
     def tank_tip2(self):
         X_span = -1*(self.tank_span + self.w_cabin/2)
         Y_span = self.tank_sweep
-        return Rectangle(width=self.tank_height,length=self.tank_c_r*self.taper,
-                        position=self.origin.translate("x",X_span).translate("y",Y_span).rotate("y",90,deg=True))
+        return Rectangle(width=self.tank_tip_height,length=self.tank_c_r*self.taper,
+                        position=self.origin.translate("x",X_span).translate("y",Y_span).translate("z",self.dihedral_height).rotate("y",90,deg=True))
 
     @Part
     def fuel_tank1(self):
@@ -168,7 +185,7 @@ class FuelTank(GeomBase):
         return [midline_1,midline_2]
 
     @Part(parse=False)
-    def cargo_vertices(self):
+    def tank_vertices(self):
         #return self.corners[0]
         vertices = self.corners[0]
         corner_mark = []
@@ -191,14 +208,14 @@ class FuelTank(GeomBase):
             if i in ctrl_points_fr:
             #if i==1 or i==2 or i==9 or i==10:
                 point = Point(data[i][0],data[i][1],data[i][2])\
-                    .translate("z",0.5*self.tank_height,
-                                "x",-1.2*0.5*np.sqrt(3)*self.tank_height)
+                    .translate("z",0.5*self.tank_root_height,
+                                "x",-1.2*0.5*np.sqrt(3)*self.tank_root_height)
                 ctrl_loc.append(point)
             elif i in ctrl_points_rr:
             #if i==1 or i==2 or i==9 or i==10:
                 point = Point(data[i][0],data[i][1],data[i][2])\
-                    .translate("z",0.5*self.tank_height,
-                                "x",1.2*0.5*np.sqrt(3)*self.tank_height)
+                    .translate("z",0.5*self.tank_root_height,
+                                "x",1.2*0.5*np.sqrt(3)*self.tank_root_height)
                 ctrl_loc.append(point)
             
                 
@@ -230,6 +247,7 @@ class FuelTank(GeomBase):
         #ref_points = [2,5,10,13]
         reso = 5
         corners = self.corners[0]
+        #display(corners)
         line_vec_l = (corners[5] - corners[2]) / reso
         line_vec_r = (corners[13] - corners[10]) / reso
         ref_points = [corners[2],corners[10]]
@@ -237,10 +255,10 @@ class FuelTank(GeomBase):
         for ref in range(len(ref_points)):
             for i in range(reso+1):
                 if ref==0:
-                    buffer = -1.2*0.5*np.sqrt(3)*self.tank_height
+                    buffer = -1.2*0.5*np.sqrt(3)*self.tank_tip_height
                 else:
-                    buffer = 1.2*0.5*np.sqrt(3)*self.tank_height
-                point = ref_points[ref] + i*vectors[ref] + Vector(0,buffer,0.5*self.tank_height)
+                    buffer = 1.2*0.5*np.sqrt(3)*self.tank_tip_height
+                point = ref_points[ref] + i*vectors[ref] + Vector(0,buffer,0.5*self.tank_tip_height)
                 # point_l = corners[2] + i*line_vec_l
                 # point_r = corners[10] + i*line_vec_r
                 marker = Sphere(radius=0.2,position=point, color="black")
